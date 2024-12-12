@@ -22,6 +22,7 @@ import org.hyperledger.besu.consensus.qbft.messagewrappers.Commit;
 import org.hyperledger.besu.consensus.qbft.messagewrappers.Prepare;
 import org.hyperledger.besu.consensus.qbft.messagewrappers.Proposal;
 import org.hyperledger.besu.datatypes.Address;
+import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.core.Block;
 
 import java.util.Collection;
@@ -137,6 +138,11 @@ public class MessageValidator {
     }
 
     return result;
+  }
+
+  // 2024-min: Eliminate duplicate work
+  public Optional<BlockProcessingOutputs> getBlockProcessingOutput() {
+    return proposalValidator.getBlockProcessingOutput();
   }
 
   /**

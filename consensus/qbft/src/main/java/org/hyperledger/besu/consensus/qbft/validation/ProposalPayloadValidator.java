@@ -16,10 +16,13 @@ package org.hyperledger.besu.consensus.qbft.validation;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Optional;
+
 import org.hyperledger.besu.consensus.common.bft.ConsensusRoundIdentifier;
 import org.hyperledger.besu.consensus.common.bft.payload.SignedData;
 import org.hyperledger.besu.consensus.qbft.payload.ProposalPayload;
 import org.hyperledger.besu.datatypes.Address;
+import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockValidator;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -39,6 +42,8 @@ public class ProposalPayloadValidator {
   private final ConsensusRoundIdentifier targetRound;
   private final BlockValidator blockValidator;
   private final ProtocolContext protocolContext;
+  // 2024-min: Eliminate duplicate work
+  private Optional<BlockProcessingOutputs> validateBlockResult = Optional.empty();
 
   /**
    * Instantiates a new Proposal payload validator.
@@ -107,7 +112,14 @@ public class ProposalPayloadValidator {
           validationResult.errorMessage);
       return false;
     }
+    // 2024-min: Eliminate duplicate work
+    validateBlockResult = validationResult.getYield();
 
     return true;
+  }
+
+  // 2024-min: Eliminate duplicate work
+  public Optional<BlockProcessingOutputs> getBlockProcessingOutput() {
+    return validateBlockResult;
   }
 }

@@ -42,8 +42,10 @@ import org.hyperledger.besu.ethereum.chain.MinedBlockObserver;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockImporter;
+import org.hyperledger.besu.ethereum.core.TransactionReceipt;
 import org.hyperledger.besu.ethereum.mainnet.BlockImportResult;
 import org.hyperledger.besu.ethereum.mainnet.HeaderValidationMode;
+import org.hyperledger.besu.ethereum.mainnet.BodyValidationMode;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.plugin.services.securitymodule.SecurityModuleException;
 import org.hyperledger.besu.util.Subscribers;
@@ -363,8 +365,24 @@ public class QbftRound {
     LOG.trace("Importing proposed block with extraData={}", extraData);
     final BlockImporter blockImporter =
         protocolSchedule.getByBlockHeader(blockToImport.getHeader()).getBlockImporter();
-    final BlockImportResult result =
-        blockImporter.importBlock(protocolContext, blockToImport, HeaderValidationMode.FULL);
+    // 2024-min: Eliminate duplicate work
+    // final BlockImportResult result =
+    //     blockImporter.importBlock(protocolContext, blockToImport, HeaderValidationMode.FULL);
+    final BlockImportResult result = roundState.getBlockProcessingOutput().map(output -> {
+        final List<TransactionReceipt> txrs = output.getReceipts();
+        LOG.warn("importBlockForSyncing [tx:{}]", txrs.size());
+        return blockImporter.importBlockForSyncing(
+            protocolContext,
+            blockToImport,
+            txrs,
+            HeaderValidationMode.FULL,
+            HeaderValidationMode.FULL,
+            BodyValidationMode.FULL);
+    }).orElseGet(() -> {
+        LOG.warn("importBlock [tx:{}]", blockToImport.getBody().getTransactions().size());
+        return blockImporter.importBlock(protocolContext, blockToImport, HeaderValidationMode.FULL);
+    });
+
     if (!result.isImported()) {
       LOG.error(
           "Failed to import proposed block to chain. block={} extraData={} blockHeader={}",

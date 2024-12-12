@@ -30,6 +30,7 @@ import org.hyperledger.besu.consensus.qbft.payload.PreparedRoundMetadata;
 import org.hyperledger.besu.consensus.qbft.payload.RoundChangePayload;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockValidator;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -57,6 +58,8 @@ public class ProposalValidator {
   private final ConsensusRoundIdentifier roundIdentifier;
   private final Address expectedProposer;
   private final BftExtraDataCodec bftExtraDataCodec;
+  // 2024-min: Eliminate duplicate work
+  private Optional<BlockProcessingOutputs> validateBlockResult = Optional.empty();
 
   /**
    * Instantiates a new Proposal validator.
@@ -93,6 +96,9 @@ public class ProposalValidator {
    * @return the boolean
    */
   public boolean validate(final Proposal msg) {
+    // 2024-min: Eliminate duplicate work
+    validateBlockResult = Optional.empty();
+
     final BlockValidator blockValidator =
         protocolSchedule.getByBlockHeader(msg.getBlock().getHeader()).getBlockValidator();
 
@@ -108,8 +114,15 @@ public class ProposalValidator {
     if (!validateProposalAndRoundChangeAreConsistent(msg)) {
       return false;
     }
+    // 2024-min: Eliminate duplicate work
+    validateBlockResult = payloadValidator.getBlockProcessingOutput();
 
     return true;
+  }
+
+  // 2024-min: Eliminate duplicate work
+  public Optional<BlockProcessingOutputs> getBlockProcessingOutput() {
+    return validateBlockResult;
   }
 
   private boolean validateProposalAndRoundChangeAreConsistent(final Proposal proposal) {
@@ -119,10 +132,8 @@ public class ProposalValidator {
       if (!validateRoundZeroProposalHasNoRoundChangesOrPrepares(proposal)) {
         return false;
       }
-
       return validateBlockCoinbaseMatchesMsgAuthor(proposal);
     } else {
-
       if (!validateRoundChanges(proposal, proposal.getRoundChanges())) {
         LOG.info("{}: failed to validate piggy-backed round change payloads", ERROR_PREFIX);
         return false;
