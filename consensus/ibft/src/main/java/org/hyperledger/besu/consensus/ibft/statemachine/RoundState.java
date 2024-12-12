@@ -21,6 +21,7 @@ import org.hyperledger.besu.consensus.ibft.messagewrappers.Prepare;
 import org.hyperledger.besu.consensus.ibft.messagewrappers.Proposal;
 import org.hyperledger.besu.consensus.ibft.validation.MessageValidator;
 import org.hyperledger.besu.crypto.SECPSignature;
+import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.core.Block;
 
 import java.util.Collection;
@@ -95,6 +96,11 @@ public class RoundState {
     }
 
     return false;
+  }
+
+  // 2024-min: Eliminate duplicate work
+  public Optional<BlockProcessingOutputs> getBlockProcessingOutput() {
+    return validator.getBlockProcessingOutput();
   }
 
   /**

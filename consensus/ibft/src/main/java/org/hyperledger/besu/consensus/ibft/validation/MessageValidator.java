@@ -21,6 +21,7 @@ import org.hyperledger.besu.consensus.ibft.messagewrappers.Commit;
 import org.hyperledger.besu.consensus.ibft.messagewrappers.Prepare;
 import org.hyperledger.besu.consensus.ibft.messagewrappers.Proposal;
 import org.hyperledger.besu.consensus.ibft.payload.RoundChangeCertificate;
+import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockValidator;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -42,7 +43,8 @@ public class MessageValidator {
   private final ProtocolSchedule protocolSchedule;
   private final ProtocolContext protocolContext;
   private final RoundChangeCertificateValidator roundChangeCertificateValidator;
-
+  // 2024-min: Eliminate duplicate work
+  private Optional<BlockProcessingOutputs> validateBlockResult = Optional.empty();
   /**
    * Instantiates a new Message validator.
    *
@@ -65,6 +67,11 @@ public class MessageValidator {
     this.roundChangeCertificateValidator = roundChangeCertificateValidator;
   }
 
+  // 2024-min: Eliminate duplicate work
+  public Optional<BlockProcessingOutputs> getBlockProcessingOutput() {
+    return validateBlockResult;
+  }
+
   /**
    * Validate proposal.
    *
@@ -72,6 +79,8 @@ public class MessageValidator {
    * @return the boolean
    */
   public boolean validateProposal(final Proposal msg) {
+    // 2024-min: Eliminate duplicate work
+    validateBlockResult = Optional.empty();
 
     if (!signedDataValidator.validateProposal(msg.getSignedPayload())) {
       LOG.info("Illegal Proposal message, embedded signed data failed validation");
@@ -110,6 +119,9 @@ public class MessageValidator {
           validationResult.errorMessage);
       return false;
     }
+
+    // 2024-min: Eliminate duplicate work
+    validateBlockResult = validationResult.getYield();
 
     return true;
   }
